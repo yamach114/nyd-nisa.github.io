@@ -1,2 +1,3 @@
 # nyd-nisa.github.io
-career
+
+https://yamach114.github.io/nyd-nisa.github.io/
