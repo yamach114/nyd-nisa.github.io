@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>NISAゲーム（HTMLだけ版）</title>
+<style>
+  body { font-family: system-ui; background: #f5f7fb; padding: 20px; }
+  h1 { text-align: center; color: #2c3e50; }
+  .box {
+    background: #fff; padding: 15px; border-radius: 10px;
+    max-width: 600px; margin: 10px auto;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  }
+  input {
+    width: 100%; padding: 8px; margin-top: 6px;
+    border-radius: 6px; border: 1px solid #ccc;
+  }
+  button {
+    padding: 10px 20px; border-radius: 999px;
+    background: #3498db; color: #fff; border: none;
+    cursor: pointer; margin-top: 10px;
+  }
+  button:disabled { background: #bdc3c7; }
+  #chart {
+    width: 100%; height: 260px; background: #fff;
+    border: 1px solid #ddd; border-radius: 8px; margin-top: 10px;
+  }
+  canvas { width: 100%; height: 100%; }
+  .summary { font-weight: bold; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<h1>NISAゲーム（簡易版）💹</h1>
+
+<div class="box">
+  <h2>STEP 1：入金</h2>
+  <input id="depositAmount" type="number" placeholder="入金額（円）">
+  <button id="depositBtn">入金する</button>
+  <div id="depositStatus"></div>
+</div>
+
+<div class="box">
+  <h2>STEP 2：購入</h2>
+  <input id="buyAmount" type="number" placeholder="購入額（円）" disabled>
+  <button id="buyBtn" disabled>購入する</button>
+  <div id="buyStatus"></div>
+</div>
+
+<div class="box">
+  <h2>STEP 3：ライブチャート</h2>
+  <div class="summary" id="summaryText"></div>
+  <div id="chart"><canvas id="chartCanvas"></canvas></div>
+</div>
+
+<script>
+let balance = 0;
+let investedAmount = 0;
+let chartData = [];
+let timer = null;
+
+// 入金ボタン
+document.getElementById("depositBtn").onclick = () => {
+  const amount = Number(document.getElementById("depositAmount").value);
+  if (amount <= 0) {
+    document.getElementById("depositStatus").textContent = "正しい金額を入力してください";
+    return;
+  }
+  balance += amount;
+  document.getElementById("depositStatus").textContent = "入金完了： " + balance + "円";
+
+  document.getElementById("buyAmount").disabled = false;
+  document.getElementById("buyBtn").disabled = false;
+};
+
+// 購入ボタン
+document.getElementById("buyBtn").onclick = () => {
+  const amount = Number(document.getElementById("buyAmount").value);
+  if (amount <= 0) {
+    document.getElementById("buyStatus").textContent = "正しい金額を入力してください";
+    return;
+  }
+  if (amount > balance) {
+    document.getElementById("buyStatus").textContent = "残高不足です";
+    return;
+  }
+
+  balance -= amount;
+  investedAmount = amount;
+  document.getElementById("buyStatus").textContent = "購入完了！チャート開始";
+
+  startLiveChart();
+};
+
+// ライブチャート開始
+function startLiveChart() {
+  chartData = [investedAmount];
+
+  timer = setInterval(() => {
+    let last = chartData[chartData.length - 1];
+    let change = (Math.random() - 0.5) * 0.06; // ±3%
+    let next = Math.max(0, last * (1 + change));
+    chartData.push(next);
+
+    drawChart(chartData);
+    updateSummary(next);
+  }, 500);
+}
+
+function updateSummary(value) {
+  const diff = value - investedAmount;
+  const rate = (diff / investedAmount) * 100;
+  document.getElementById("summaryText").textContent =
+    `評価額：${Math.round(value).toLocaleString()}円（${diff >= 0 ? "+" : ""}${Math.round(diff)}円、${rate.toFixed(2)}%）`;
+}
+
+// チャート描画
+function drawChart(data) {
+  const canvas = document.getElementById("chartCanvas");
+  const ctx = canvas.getContext("2d");
+
+  canvas.width = document.getElementById("chart").clientWidth;
+  canvas.height = document.getElementById("chart").clientHeight;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const max = Math.max(...data);
+  const min = Math.min(...data);
+
+  ctx.strokeStyle = "#3498db";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+
+  data.forEach((v, i) => {
+    const x = (canvas.width / (data.length - 1)) * i;
+    const y = canvas.height - ((v - min) / (max - min)) * canvas.height;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+
+  ctx.stroke();
+}
+</script>
+
+</body>
+</html>
